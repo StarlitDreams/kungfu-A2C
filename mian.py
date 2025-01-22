@@ -13,3 +13,4 @@ import gymnasium as gym
 from gymnasium import ObservationWrapper
 from gymnasium.spaces import Box
 
+class Network
