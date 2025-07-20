@@ -12,6 +12,7 @@ from torch.distributions import Categorical
 import gymnasium as gym
 from gymnasium import ObservationWrapper
 from gymnasium.spaces import Box
+import tqdm
 
 class Network(nn.Module):
     def __init__(self, action_size):
@@ -50,27 +51,27 @@ class PreprocessAtari(ObservationWrapper):
     self.observation_space = Box(0.0, 1.0, obs_shape)
     self.frames = np.zeros(obs_shape, dtype = np.float32)
 
-  def reset(self):
+  def reset(self, *, seed=None, options=None):
     self.frames = np.zeros_like(self.frames)
-    obs, info = self.env.reset()
+    obs, info = self.env.reset(seed=seed, options=options)
     self.update_buffer(obs)
     return self.frames, info
 
-  def observation(self, img):
-    img = self.crop(img)
-    img = cv2.resize(img, self.img_size)
+  def observation(self, observation):
+    observation = self.crop(observation)
+    observation = cv2.resize(observation, self.img_size)
     if not self.color:
-      if len(img.shape) == 3 and img.shape[2] == 3:
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    img = img.astype('float32') / 255.
+      if len(observation.shape) == 3 and observation.shape[2] == 3:
+        observation = cv2.cvtColor(observation, cv2.COLOR_BGR2GRAY)
+    observation = observation.astype('float32') / 255.
     if self.color:
       self.frames = np.roll(self.frames, shift = -3, axis = 0)
     else:
       self.frames = np.roll(self.frames, shift = -1, axis = 0)
     if self.color:
-      self.frames[-3:] = img
+      self.frames[-3:] = observation
     else:
-      self.frames[-1] = img
+      self.frames[-1] = observation
     return self.frames
 
   def update_buffer(self, obs):
@@ -93,45 +94,94 @@ print("Action names:", env.env.env.get_action_meanings())
 learning_rate = 1e-4
 discount_factor = 0.99
 number_environments = 10
+class Agent:
+    def __init__(self, action_size):
+        self.device = torch.device("cuda")
+        self.action_size = action_size
+        self.network = Network(action_size).to(self.device)
+        self.optimizer = optim.Adam(self.network.parameters(), lr=learning_rate)
 
-def __innit__(self, action_size):
-    self.device= torch.device("cuda" )
-    self.action_size = action_size
-    self.network = Network(action_size).to(self.device)
-    self.optimizer = optim.Adam(self.network.parameters(), lr=learning_rate)
+    def act(self, state):
+        if state.ndim == 3:
+            state = [state]
+        state = torch.tensor(state, dtype=torch.float32, device=self.device)
+        action_values, _ = self.network(state)
+        policy = F.softmax(action_values, dim=-1)
+        return np.array([[np.random.choice(len(p), p=p) for p in policy.detach().cpu().numpy()]])
+
+    def step(self, state, action, reward, next_state, done):
+        batch_size = state.shape[0]
+        state = torch.tensor(state, dtype=torch.float32, device=self.device)
+        next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device)
+        reward = torch.tensor(reward, dtype=torch.float32, device=self.device)
+        done = torch.tensor(done, dtype=torch.bool, device=self.device).to(dtype=torch.float32)
+        action_values, state_value = self.network(state)
+        _, next_state_value = self.network(next_state)
+        target_state_value = reward + discount_factor * next_state_value * (1 - done)
+        advantage = target_state_value - state_value
+        probs = F.softmax(action_values, dim=-1)
+        log_probs = F.log_softmax(action_values, dim=-1)
+        entropy = -torch.sum(probs * log_probs, dim=-1)
+        batch_idx = np.arange(batch_size)
+        logp_actions = log_probs[batch_idx, action]
+        actor_loss = -(logp_actions * advantage.detach()).mean() - 0.001 * entropy.mean()
+        critic_loss = F.mse_loss(state_value, target_state_value.detach())
+        total_loss = actor_loss + critic_loss
+        self.optimizer.zero_grad()
+        total_loss.backward()
+        self.optimizer.step()
     
-def act(self,state):
-    if state.ndim == 3:
-        state = [state]
-    state = torch.tensor(state,dtype=torch.float32, device=self.device)
-    action_values, _ = self.network(state)
-    policy = F.softmax(action_values, dim=-1)
-    return np.array([[np.random.choice(len(p),p=p)for p in policy.detach().cpu().numpy()]])
+    
+agent = Agent(number_actions)
+
+def evaluate(agent,env,n_episodes=1):
+  episode_rewards = []
+  for _ in range(n_episodes):
+    state, _ = env.reset()
+    total_reward = 0
+    while True:
+      action = agent.act(state)
+      state,reward,done,info,_ = env.step(action[0])
+      total_reward += reward
+      if done:
+        break
+    episode_rewards.append(total_reward)
   
-def step(self,state, action,reward, next_state, done):
-    batch_size = state.shape[0]
-    state = torch.tensor(state, dtype=torch.float32, device=self.device)
-    next_state = torch.tensor(next_state, dtype=torch.float32, device=self.device)
-    reward = torch.tensor(reward, dtype=torch.float32, device=self.device)
-    done = torch.tensor(done, dtype=torch.bool, device=self.device).to(dtype=torch.float32)
-    action_values, state_value = self.network(state)
-    _, next_state_value = self.network(next_state)
-    target_state_value = reward + discount_factor * next_state_value * (1 - done)
-    advantage=target_state_value-state_value
-    probs = F.softmax(action_values, dim=-1)
-    log_probs = F.log_softmax(action_values, dim=-1)
-    entropy = -torch.sum(probs * log_probs, dim=-1)
-    batch_idx=np.arange(batch_size)
-    logp_actions = log_probs[batch_idx, action]
-    actor_loss = -(logp_actions * advantage.detach()).mean() - 0.001 * entropy.mean()
-    critic_loss = F.mse_loss(state_value, target_state_value.detach())
-    total_loss = actor_loss + critic_loss
-    self.optimizer.zero_grad()
-    total_loss.backward()
-    self.optimizer.step()
-    
-    
-    
-    
+  return episode_rewards
     
   
+  
+class EnvBatch:
+    def __init__(self, n_envs=10):
+        self.envs = [make_env() for _ in range(n_envs)]
+    
+    def reset(self):
+        _states = []
+        for env in self.envs:
+            _states.append(env.reset()[0])
+        return np.array(_states)
+      
+    def step(self,actions):
+      next_states,rewards,dones,infos,_ = map(np.array,zip(*[env.step() for env,a in zip(self.envs,actions)]))
+      for i in range(len(self.envs)):
+          if dones[i]:
+              next_states[i], _ = self.envs[i].reset()[0]
+              
+      return next_states, rewards, dones, infos
+          
+    
+env_batch = EnvBatch(number_environments)
+batch_states = env_batch.reset()
+
+with tqdm.trange(0,3001) as progress_bar:
+    for i in progress_bar:
+      batch_actions=agent.act(batch_states)
+      batch_next_states, batch_rewards, batch_dones, _ = env_batch.step(batch_actions)
+      batch_rewards *= 0.01
+      agent.step(batch_states, batch_actions, batch_rewards, batch_next_states, batch_dones)
+      batch_states = batch_next_states
+      if i % 1000 == 0:
+          progress_bar.set_description(f"Episode {i}, Avg Reward: {np.mean(evaluate(agent, env_batch, n_episodes=10)):.2f}")
+          
+          
+
