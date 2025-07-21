@@ -1,0 +1,8 @@
+torch==1.13.0+cu117
+gymnasium[atari]>=0.29.0
+ale-py>=0.9.0
+numpy>=1.23.0
+opencv-python>=4.5.5.64
+tqdm>=4.64.0
+imageio>=2.22.0
+ipython>=8.5.0
