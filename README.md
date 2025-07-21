@@ -62,6 +62,7 @@ The learning curve, showing the average evaluation reward every 1 000 steps, was
 ## Game Demo
 
 A recorded demonstration of the trained agent playing **Kung Fu Master**.
+
 ![video](https://github.com/user-attachments/assets/31a64efc-0e4a-46fb-8838-3f470b244503)
 
 
