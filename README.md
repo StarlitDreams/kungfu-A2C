@@ -1,4 +1,5 @@
-# Kung Fu Master A2C Agent
+
+<img width="3942" height="1536" alt="Banner" src="https://github.com/user-attachments/assets/cdd85300-e1be-4daa-8943-b830c8c3cd01" />
 
 ## Overview
 This repository implements an Advantage Actor–Critic (A2C) agent trained to play the Atari game **Kung Fu Master**. The agent was developed in PyTorch and uses Gymnasium (with ALE ROMs registered) for environment management. The main training and evaluation script is provided in **`main.py`**.
@@ -42,26 +43,16 @@ python main.py
 - Every 1 000 steps, the agent will be evaluated over 10 episodes and the average reward will be printed.  
 - At the end of training, **`video.mp4`** will be generated in the working directory.
 
-### Evaluation Only
-To evaluate a pre-trained agent (assuming its weights have been saved/loaded within `main.py`):
-1. Modify `main.py` to load your checkpoint before calling `evaluate(...)`.  
-2. Run:
-```bash
-python main.py --evaluate-only
-```
 
 ## Training Iterations
 300 000 iterations were done which took 6 hours to complete.
 <img width="1920" height="1080" alt="Screenshot 2025-07-21 141318" src="https://github.com/user-attachments/assets/1c0eecff-3fc3-43eb-9f77-20e227d60088" />
 
 
-## Training Iterations
-
-The learning curve, showing the average evaluation reward every 1 000 steps, was plotted and saved as **`training_iterations.png`**.
-
 ## Game Demo
 
 A recorded demonstration of the trained agent playing **Kung Fu Master**.
+
 ![video](https://github.com/user-attachments/assets/31a64efc-0e4a-46fb-8838-3f470b244503)
 
 
