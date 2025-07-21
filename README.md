@@ -6,10 +6,6 @@ This repository implements an Advantage Actor–Critic (A2C) agent trained to pl
 ## Repository Structure
 - **`main.py`**  
   Implements environment setup, preprocessing, the neural network, the A2C agent, batch training loop, evaluation, and video recording/display utilities.
-- **`training_iterations.png`**  
-  Plot of average evaluation reward versus training steps (generated separately).
-- **`video.mp4`**  
-  Recorded gameplay of the trained agent.
 - **`requirements.txt`**  
   Lists all Python dependencies.
 
