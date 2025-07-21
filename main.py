@@ -205,3 +205,15 @@ if __name__ == "__main__":
     # after training, record and display
     show_video_of_model(agent)
     show_video()
+
+
+
+
+# meow :3 If the code doesn't run, please check if you have registered the ROMs. pip install autorom , then open the scripts file and run the autorom script to accept the licences. 
+
+
+
+# :3
+
+
+#Have a great day <3333 
